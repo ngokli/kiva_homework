@@ -12,6 +12,7 @@ function getParameterByName(name) {
 	}
 }
 
+// Takes an object and generates html with nested lists
 function makeListItems(key, val) {
 	var items = [];
 
@@ -30,52 +31,135 @@ function makeListItems(key, val) {
 	return items.join('');
 }
 
-$(document).ready(function() {
-	var page = '';
-	var loan_id = '';
+// Callback to replace the current content with a list of loans
+// data: JSON response from /loans/search
+// params: object with page and sector values
+function displayLoansList(data, params) {
+	var page   = params.page;
+	var sector = params.sector;
 
-	// Get page parameter from URL
-	if (page = getParameterByName('page')) {
-		page = '&page='+page;
-	}
+	// wish this weren't hardcoded!
+	var sectors = [
+		'All',
+		'Agriculture',
+		'Arts',
+		'Clothing',
+		'Construction',
+		'Education',
+		'Entertainment',
+		'Food',
+		'Health',
+		'Housing',
+		'Manufacturing',
+		'Personal Use',
+		'Retail',
+		'Services',
+		'Transportation',
+		'Wholesale'
+	];
 
-	// Is this a request for an individual loan?
-	if (loan_id = getParameterByName('loan_id')) {
-		url = 'http://api.kivaws.org/v1/loans/'+loan_id+'.json';
-		title = 'Loan';
-	} else {
-		url ='http://api.kivaws.org/v1/loans/newest.json';
-		title = 'Loans';
-	}
-
-	// Request loan data
-	$.getJSON(url+page, function(data) {
-		var items = [];
-
-		// Build the list
-		items.push('<ul>');
-		items.push(makeListItems(title, data.loans));
-		items.push('</ul>');
-
-		$('#content').html(items.join(''));
-
-		// Pagination
-		var prev_page = '';
-		if (data.paging.page > 1) {
-			prev_page = '<a href="index.html?page='+(data.paging.page-1)+'">Previous Page</a>';
-		}
-
-		var next_page = '';
-		if (data.paging.page < data.paging.pages) {
-			next_page = '<a href="index.html?page='+(data.paging.page+1)+'">Next Page</a>';
-		}
-
-		$('<div/>').html(prev_page+' '+data.paging.page+' of '+data.paging.pages+' '+next_page)
-			.appendTo('#content');
-
-		// Create links to loan pages
-		$('.id').each(function () {
-			$(this).wrapInner('<a href="index.html?loan_id='+$(this).text().substring(4,$(this).text().length)+'" />');
-		});
+	// Create HTML for sector select
+	var sectorSelect = [];
+	sectorSelect.push('<select id="sector">');
+	$.each(sectors, function(index, sector) {
+		sectorSelect.push('<option value="' + sector + '">' + sector + '</option>');
 	});
-});
+	sectorSelect.push('</select>');
+
+	// create HTML for list of loans
+	var items = [];
+	items.push('<ul>');
+	items.push(makeListItems('Loans', data.loans));
+	items.push('</ul>');
+
+	// Add sector select and loan list to page
+	$('#content').html(sectorSelect.join('') + items.join(''));
+
+
+	// Pagination
+	var pageCount = data.paging.pages;
+
+	var prev_page = '';
+	if (page > 1) {
+		prev_page = '<a href="#" id="prevPage">Previous Page</a>';
+	}
+	var next_page = '';
+	if (page < pageCount) {
+		next_page = '<a href="#" id="nextPage">Next Page</a>';
+	}
+
+	$('<div/>').html(prev_page+' '+page+' of '+pageCount+' '+next_page)
+		.appendTo('#content');
+	$('#prevPage').click(function() {
+		queryLoansList(page - 1, sector);
+	});
+	$('#nextPage').click(function() {
+		queryLoansList(page + 1, sector);
+	});
+
+
+	// Set up sector select
+	$("#sector").change(function() {
+		var sector = $(this).val();
+		if (sector == 'All') {
+			sector = null;
+		}
+		queryLoansList(page, sector);
+	});
+
+	// Create links to loan pages (opens in separate window)
+	$('.id').each(function () {
+		$(this).wrapInner('<a href="index.html?loan_id='+$(this).text().substring(4,$(this).text().length)+'" target="_blank"/>');
+	});
+}
+
+
+// Callback to replace the current content with info about a single loan
+// data: JSON response from /loans/:ids
+function displayLoan(data) {
+	var items = [];
+
+	// Build the list
+	items.push('<ul>');
+	items.push(makeListItems("Loan", data.loans));
+	items.push('</ul>');
+
+	$('#content').html(items.join(''));
+}
+
+
+// Queries and displays list of loans (/loans/search)
+function queryLoansList(page, sector) {
+	var url = 'http://api.kivaws.org/v1/loans/search.json';
+	var params = {}
+	params.page = page
+	if (sector != null) {
+		params.sector = sector;
+	}
+
+	$.getJSON(url, params, function(data) {
+		displayLoansList(data, params);
+	});
+}
+
+
+// Queries and displays info about a single loan (/loans/:ids)
+function queryLoan(loan_id) {
+	var url = 'http://api.kivaws.org/v1/loans/'+loan_id+'.json';
+	$.getJSON(url, displayLoan);
+}
+
+
+// Show info about a single loan or shows a list of the newest loans
+function ready() {
+	var loan_id = '';
+	if (loan_id = getParameterByName('loan_id')) {
+		queryLoan(loan_id);
+	}
+	else {
+		queryLoansList(1, null);
+	}
+}
+
+
+$(document).ready(ready);
