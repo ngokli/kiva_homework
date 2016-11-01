@@ -16,7 +16,8 @@ function getParameterByName(name) {
 function makeListItems(key, val) {
 	var items = [];
 
-	items.push('<li><b>' + key + '</b><ul>');
+	// class enables creating loan links in displayLoansList()
+	items.push('<li class="' + key + '"><b>' + key + '</b><ul>');
 
 	$.each(val, function(key, val) {
 		if (typeof(val) == 'object') {
@@ -108,7 +109,7 @@ function displayLoansList(data, params) {
 	});
 
 	// Create links to loan pages (opens in separate window)
-	$('.id').each(function () {
+	$('li.loans > ul > li > ul > li.id').each(function () {
 		$(this).wrapInner('<a href="index.html?loan_id='+$(this).text().substring(4,$(this).text().length)+'" target="_blank"/>');
 	});
 }
