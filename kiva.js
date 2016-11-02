@@ -36,20 +36,17 @@ function makeListItems(key, val) {
 // data: JSON response from /loans/search
 // params: object with page and sector values
 function displayLoansList(data, params) {
-	var page   = params.page;
-	var sector = params.sector;
-
-	// create HTML for list of loans
+	// replace existing loans list with new results
 	var items = [];
 	items.push('<ul>');
 	items.push(makeListItems('Loans', data.loans));
 	items.push('</ul>');
-
-	// Replace results with new loan list
 	$('#results').html(items.join(''));
 
 
 	// Pagination
+	var page      = params.page;
+	var sector    = params.sector;
 	var pageCount = data.paging.pages;
 
 	var prev_page = '';
@@ -118,7 +115,8 @@ function queryLoan(loan_id) {
 
 // Create sector select and do the initial query
 function loanListSetup() {
-	// wish these weren't hardcoded!
+	// List of sectors
+	// I wish these weren't hardcoded!
 	var sectors = [
 		'All',
 		'Agriculture',
@@ -158,7 +156,8 @@ function loanListSetup() {
 }
 
 
-// Show info about a single loan or shows a list of the newest loans
+// Show info about a single loan if there is a loan_id parameter.
+// Otherwise, show a list of the newest loans
 function ready() {
 	var loan_id = '';
 	if (loan_id = getParameterByName('loan_id')) {
